@@ -1,0 +1,644 @@
+<html>
+<head>
+	<title>N^11</title>
+	<link rel="icon" type="image/png" href="fav.gif" />
+	<script src="jquery-2.2.0.min.js"></script>
+	<script src="jquery-ui.min.js"></script>
+	<style>
+		.new {
+			background: #8f7a66;
+			color:white;
+			cursor: pointer
+		}
+
+		.f {
+			font-family: Consolas, "Liberation Mono", Courier, monospace;
+			font-size: 25px;
+			font-weight: bold;
+			text-align: center;
+		}
+
+		.b {
+			margin: 0 auto;
+			display: table;
+			border-spacing: 5px;
+			margin-top: 20px;
+			padding: 15px;
+			background: #bbada0;
+			border-radius: 6px;
+			width: 500px;
+			height: 500px;
+		}
+
+		.r {
+			display: table-row;
+		}
+
+		.c {
+			width: 110px;
+			height: 110px;
+			padding: 5px;
+		}
+
+		.d {
+			display: table-cell;
+			vertical-align: middle;
+			border-radius: 3px;
+			margin: 12px;
+		}
+
+		.tc {
+			background: #bbada0;
+			margin: 0 auto;
+			width: 100%;
+			height: 55px;
+			vertical-align: middle;
+			text-align: center;
+			font-size: 15px;
+			border-spacing: 0px;
+			border-radius: 3px;
+		}
+
+		.tv {
+			display: block; 
+			margin: 0px;
+		}
+	</style>
+</head>
+	<body>
+		<audio id="mHH" src="HalfwayHouse.mp3" type="audio/mp3"></audio>
+		<div class="b f" style="height: 125px; background: white;">
+			<div class="r">
+				<div class="d" style="font-size:40px; width:50%; margin: 0 auto;"><span class="title"></span></div>
+				<div class="d">
+					<div class="tc" style="float:right;">
+						<div style="color: #EEE4DA;">score</div>
+						<div class="d tv" style="" id="score"></div>
+					</div>
+				</div>
+				<div class="d">
+					<div class="tc" style="float:right;">
+						<div style="color: #EEE4DA;">best</div>
+						<div class="d tv" style="" id="hscore"></div>
+					</div>
+				</div>
+			</div>
+			<div class="r">
+				<div class="d" style="font-size: 12px; font-weight: normal; width: 225px;">
+					<span class="n_1 a"></span> <span class="a">&#9679;</span> <span class="n_1 a"></span> <span class="a">=</span> <span class="n_2 a"></span><span class="a">;</span> <span class="a">Get to <span class="title"></span>!</span>
+				</div>
+				<div class="d" style="background: white; color:white;">Undo</div>
+				<div class="d new">New</div>
+			</div>
+		</div>
+		<div>
+			<div id="gMessage"
+				style="
+				display: none;
+				position: absolute;
+				width: 500px;
+				height: 497px;
+				padding: 15px;
+				background-color: rgba(206, 206, 151, 0.7);
+				margin-left: auto;
+				margin-right: auto;
+				left: 0;
+				right: 0;">
+				<div class="f" style="
+					font-size: 50px;
+					">
+					<span id="sMessage" style="
+						position:relative;
+						top: 95px;
+						">
+					</span>
+					<div class="new" style="
+						display: inline-block;
+						padding: 0px;
+						width: 325px;
+						vertical-align: middle;
+						border-radius: 3px;
+						margin: 12px;
+						position: relative;
+						top: 266px;
+						">
+						Try again
+					</div>
+				</div>
+			</div>
+			<div class="b f" id="board" style="">
+				<div class="r">
+					<div class="c d"></div>
+					<div class="c d"></div>
+					<div class="c d"></div>
+					<div class="c d"></div>
+				</div>
+				<div class="r">
+					<div class="c d"></div>
+					<div class="c d"></div>
+					<div class="c d"></div>
+					<div class="c d"></div>
+				</div>
+				<div class="r">
+					<div class="c d"></div>
+					<div class="c d"></div>
+					<div class="c d"></div>
+					<div class="c d"></div>
+				</div>
+				<div class="r">
+					<div class="c d"></div>
+					<div class="c d"></div>
+					<div class="c d"></div>
+					<div class="c d"></div>
+				</div>
+			</div>
+		</div>
+		<div id="directions" class="f" style="
+			margin: 0 auto;
+			border-spacing: 5px;
+			margin-top: 10px;
+			padding: 15px;
+			width: 500px;
+			font-size: 15px;
+			position: relative;
+			top: -350px;">
+			HOW TO PLAY: Use your arrow keys to move the tiles. When two tiles with the same number touch, they merge into one!
+		</div>
+
+		<script type="text/javascript">
+			// UTILITY FUNCTION
+			function getParameterByName(name) {
+				var url = window.location.href;
+				name = name.replace(/[\[\]]/g, "\\$&");
+				var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+					results = regex.exec(url);
+				if (!results) return null;
+				if (!results[2]) return '';
+				return decodeURIComponent(results[2].replace(/\+/g, " "));
+			}
+		</script>
+
+		<script type="text/javascript">
+			// MODEL - GAME LOGIC
+			var model = new function() {
+				this.matrix_length = 4;
+				this.board = [];
+				this.directions = Object.freeze({
+					east: 1,
+					west: -1,
+					north: -4,
+					south: 4
+				});
+
+				this.direction_start_index = {
+					// Where is our initial cell
+					'-1' : 00, // West means start at Top Right
+					 '1' : 03, // East means start at Top Left
+					'-4' : 00, // North means start at Bottom Left
+					 '4' : 12  // South means start at Top Left
+				};
+
+				this.direction_move_vector = {
+					// How do we get to the next row / col
+					'-1' : +01, // West means South is next row
+					 '1' : +07, // East means South is next row
+					'-4' : -11, // North means East is next Col
+					 '4' : +13  // South means East is next Col
+				};
+
+				this.block_add_callback = null;
+
+				this.board_row = function(index) {
+					return Math.floor(index / this.matrix_length);
+				};
+				this.board_col = function(index) {
+					return index % this.matrix_length;
+				};
+				this.board_row_col_by_direction = function(index, direction) {
+					if (Math.abs(direction) == 1) {
+						return this.board_row(index);
+					} else {
+						return this.board_col(index);
+					}
+				};
+
+				this.new_game = function() {
+					this.board = Array.apply(null, Array(16)).map(function () { return 0; });
+					this.board_add_block();
+					this.board_add_block();
+				};
+
+				this.has_free_space = function() {
+					for (var i = 0; i < this.board.length; i++) {
+						if (this.board[i] == 0) {
+							return true;
+						}
+					}
+
+					return false;
+				}
+
+				this.board_add_block = function() {
+					var board_index = null;
+					do {
+						var x = Math.floor(Math.random() * (this.matrix_length * this.matrix_length + 1));
+						if (this.board[x] == 0) {
+							board_index = x;
+						}
+					} while (board_index === null);
+
+					this.board[board_index] = ([1, 2])[Math.floor(Math.random() * 2)];
+					if (this.block_add_callback != null) {
+						this.block_add_callback(board_index);
+					}
+				};
+
+				this.block_highest = function() {
+					var score = 0;
+					for (var i = 0; i < this.board.length; i++) {
+						if (this.board[i] > score) {
+							score = this.board[i];
+						}
+					}
+
+					return score;
+				}
+
+				this.board_shift = function(direction, modify_board) {
+					//+1 East, -1 West; -4 North, +4 South
+					if (typeof modify_board === 'undefined') {
+						modify_board = true;
+					}
+
+					var scores = [];
+					var hasMoved = false;
+					var index = this.direction_start_index[direction.toString()];
+					var move_next_vector = this.direction_move_vector[direction.toString()];
+					for (var i = 0; i < this.board.length; i++) {
+						var value = this.board[index];
+						if (value > 0) {
+							var index_search = index;
+							var last_good = -1;
+							for(var x = 0; x < this.matrix_length; x++) {
+								//Seach for a combination or free cell
+								index_search += direction;
+								if (index_search < 0 || index_search > this.board.length || this.board[index_search] < 0
+									|| this.board_row_col_by_direction(index, direction) != this.board_row_col_by_direction(index_search, direction)) {
+									break;
+								}
+
+								if (this.board[index_search] == 0) {
+									last_good = index_search;
+								} else if (this.board[index_search] == value) {
+									var score = this.board[index_search];
+									score++;
+									scores.push(score);
+									if (modify_board) {
+										this.board[index_search] = -1 * score;
+										this.board[index] = 0;
+									}
+									last_good = -1;
+									hasMoved = true;
+									break;
+								} else {
+									// we hit a cell w a block w cannot combine
+									break;
+								}
+							}
+
+							if (last_good >= 0) {
+								if (modify_board) {
+									this.board[last_good] = this.board[index];
+									this.board[index] = 0;
+								}
+								hasMoved = true;
+							}
+						}
+
+						if ((i + 1) % this.matrix_length == 0) {
+							// We need to reset to the next row/col
+							index += move_next_vector;
+						} else {
+							// Take steps away from the direction we push towards
+							index -= direction;
+						}
+					}
+
+					for (var i = 0; i < this.board.length; i++) {
+						if (this.board[i] < 0) {
+							this.board[i] *= -1;
+						}
+					}
+
+					return [hasMoved, scores];
+				};
+
+				this.has_move = function() {
+					for (var i = 0; i < this.board.length; i++) {
+						if (this.board[i] == 0) {
+							return true;
+						}
+					}
+
+					for (var direction in this.directions) {
+						if (this.board_shift(this.directions[direction], false)[1].length > 0) {
+							return true;
+						}
+					}
+
+					return false;
+				}
+
+				this.east = function() {
+					return this.board_shift(this.directions.east);
+				};
+
+				this.west = function() {
+					return this.board_shift(this.directions.west);
+				};
+
+				this.north = function() {
+					return this.board_shift(this.directions.north);
+				};
+
+				this.south = function() {
+					return this.board_shift(this.directions.south);
+				};
+
+				this.board_print = function() {
+					var row = "";
+					for (var i = 0; i < this.board.length; i++) {
+						row += this.board[i].toString() + ", ";
+						if ((i + 1) % this.matrix_length == 0) {
+							console.log(Math.floor(i / this.matrix_length).toString() + ": " + row);
+							row = "";
+						}
+					}
+
+					console.log(row);
+				};
+			};
+		</script>
+
+		<script type="text/javascript">
+			// VIEW - Visual Display
+			var view__n = getParameterByName("n") ? getParameterByName("n") : 2;
+			var view__has_moved = false;
+				// Has a player made a move yet
+			var view__score = 0;
+				// Sum of scores per game
+			var view__scores = [];
+				// Scores per move
+			var view__highscore = 0;
+				// Highest score seen so far
+			var view_states = Object.freeze({
+				first_game: 0,
+				new_game: 1,
+				waiting_for_first_move: 2,
+				playing: 3,
+				won: 4,
+				lost: 5,
+				won_continue: 6
+			});
+
+			function view_state_update(view_state) {
+				view__state = view_state;
+				switch (view_state) {
+					case view_states.first_game:
+						var delay = 0;
+						$(".a").each(function() {
+							$(this).delay(delay).animate({
+								fontSize: '18px',
+								color: 'red'
+								}, {
+								duration: 500,
+								complete: 
+									function() { 
+										$(this).animate({
+											color: 'black'
+										}, 500);
+									} 
+								});
+							delay += 500;
+						});
+
+						$("#directions").delay(delay).animate(
+							{ top: '0px' },
+							{ duration: 500, complete: function() {
+								view_state_update (view_states.new_game);
+							}
+						});
+						break;
+					case view_states.new_game:
+						new_game();
+						view_state_update (view_states.waiting_for_first_move);
+						break;
+					case view_states.waiting_for_first_move:
+
+						break;
+					case view_states.playing:
+
+						break;
+					case view_states.won:
+						show_message("Winner", true);
+						break;
+					case view_states.lost:
+						show_message("Game over!", false);
+						break;
+					case view_states.won_continue:
+
+						break;
+					default:
+						break;
+				}
+			}
+
+			function is_playing() {
+				return !(view__state == view_states.first_game || view__state == view_states.won);
+			}
+
+			function show_message (message, allowContinue) {
+				// Board overlay, disable keyevents
+				document.getElementById("gMessage").style.display = 'inline';
+				document.getElementById("sMessage").innerText = message;
+			}
+
+			var isWinner = false;
+			var isGameOver = false;
+			function new_game() {
+				$(document.getElementsByClassName("c")).finish();
+				view__has_moved = false;
+				view__score = 0;
+
+				document.getElementById("score").innerText = view__score.toString();
+				//document.getElementById("title").style.background = "white";
+				isWinner = false;
+				//document.getElementById("winner").style.display = 'none';
+
+				isGameOver = false;
+				model.new_game();
+				board_display(model.board);
+			}
+
+			var backcolor = {
+				"0": "#cdc1b5",
+				"1": "#eee4da",
+				"2": "#ece0ca",
+				"3": "#f2b179",
+				"4": "#f59565",
+				"5": "#f37d5c",
+				"6": "#f65d3b",
+				"7": "#edce71",
+				"8": "#edcc63",
+				"9": "#ffd91d",
+				"10": "#ffee1d",
+				"11": "#ffff00",
+			}
+
+			function board_display(board) {
+				var cells = document.getElementsByClassName("c");
+				//document.getElementById("title").style.backgroundColor = backcolor[highest_block.toString()];
+				for (var i = 0; i < board.length; i++) {
+					var cell = cells[i];
+					cell.innerText = Math.pow(view__n, board[i]).toString();
+					cell.style.color = "#ffffff";
+					cell.style.fontSize = "55px";
+					if (backcolor[board[i]] === undefined) {
+						cell.style.backgroundColor = "#ffff00";
+					} else {
+						cell.style.backgroundColor = backcolor[board[i]];
+					}
+
+					if (board[i] == 0) {
+						cell.innerText = "";
+					} else if (board[i] <= 2) {
+						cell.style.color = "#000000";
+					} else if (cell.innerText.length > 3) {
+						cell.style.fontSize = "40px";
+					}
+				}
+			}
+		</script>
+
+		<script type="text/javascript">
+			// Connect Model logic with View display
+			var hh = null;
+			var musicTimeoutId = null;
+			$(document).ready(function() {
+				$(".title").text(Math.pow(view__n, 11));
+				$(".n_1").text(view__n);
+				$(".n_2").text(view__n * view__n);
+
+				// audio object
+				hh = document.getElementById("mHH");
+				hh.play();
+				musicTimeoutId = window.setTimeout(music_review, 100);
+
+				// bind model events
+				model.block_add_callback = function(index) {
+					var value = model.board[index];
+					var cell = document.getElementsByClassName("c")[index];
+					$(cell).animate({
+							backgroundColor: backcolor[value.toString()],
+							color: (value <= 4) ? "#000000" : "#ffffff"
+						},
+						1000);
+					cell.innerText = Math.pow(view__n, value);
+				};
+				view_state_update(view_states.first_game);
+
+				// events
+				$(".new").click(function (evt) {
+					if (!is_playing()) {
+						return;
+					}
+					evt.stopPropagation();
+					document.getElementById("gMessage").style.display = 'none';
+					new_game();
+				});
+
+				// event based game loop
+				$(window).keydown(function(event) {
+					if (!is_playing()) {
+						return;
+					}
+
+					$(document.getElementsByClassName("c")).finish();
+					// Handle Events
+					var move_state = null;
+						// move_state = [hasMoved, [score]];
+					switch (event.keyCode) {
+						case 37:
+							move_state = model.west();
+							break;
+						case 38:
+							move_state = model.north();
+							break;
+						case 39:
+							move_state = model.east();
+							break;
+						case 40:
+							move_state = model.south();
+							break;
+						default:
+							break;
+					}
+
+					// Display
+					board_display(model.board);
+
+					// Update State
+					if (move_state != null) {
+						var hasMoved = move_state[0];
+						if (hasMoved) {
+							if (!view__has_moved) {
+								view__has_moved = true;
+							}
+
+							if (model.has_free_space()) {
+								model.board_add_block();
+							}
+						}
+
+						var scores = move_state[1];
+						for (var i = 0; i < scores.length; i ++) {
+							view__score += Math.pow(view__n, scores[i]);
+							document.getElementById("score").innerText = view__score.toString();
+						}
+
+						var highest_block = model.block_highest();
+						if (!isWinner && highest_block >= 2048) {
+							isWinner = true;
+							isGameOver = true;
+							view_state_update(view_states.won);
+						} else if (!model.has_move()) {
+							isGameOver = true;
+							view_state_update(view_states.lost);
+						}
+
+						if (view__score > view__highscore) {
+							view__highscore = view__score;
+							document.getElementById("hscore").innerText = view__highscore;
+						}
+					}
+				});
+			});
+
+			function music_review() {
+				var cTime = hh.currentTime;
+				if (!view__has_moved && cTime > 10.20) {
+					// Intro
+					hh.currentTime = 3.75;
+				} else if (view__has_moved && !isGameOver && cTime > 54.8) {
+					// Main loop
+					hh.currentTime = 27.5;
+				} else if (isGameOver && cTime < 220) {
+					// Outro
+					hh.currentTime = 220.1;
+				}
+
+				musicTimeoutId = window.setTimeout(music_review, 50);
+			}
+		</script>
+	</body>
+</html>
