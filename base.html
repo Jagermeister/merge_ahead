@@ -22,7 +22,6 @@
 			margin: 0 auto;
 			display: table;
 			border-spacing: 5px;
-			margin-top: 20px;
 			padding: 15px;
 			background: #bbada0;
 			border-radius: 6px;
@@ -105,53 +104,38 @@
 				left: 0;
 				right: 0;">
 				<div class="f" style="
+					position: relative;
 					font-size: 50px;
 					">
 					<span id="sMessage" style="
-						position:relative;
+						position: relative;
 						top: 95px;
-						">
-					</span>
+						"></span>
+					<div id="gContinue" style="
+						width: 325px;
+						top: 220px;
+						position: relative;
+						margin: 0 auto;
+						background: #8f7a66;
+						color:white;
+						cursor: pointer
+						" onclick="javascript:document.getElementById('gMessage').style.display='none';">
+						Continue?
+					</div>
 					<div class="new" style="
-						display: inline-block;
 						padding: 0px;
 						width: 325px;
+						top: 270px;
+						position: relative;
+						margin: 0 auto;
 						vertical-align: middle;
 						border-radius: 3px;
-						margin: 12px;
-						position: relative;
-						top: 266px;
 						">
 						Try again
 					</div>
 				</div>
 			</div>
-			<div class="b f" id="board" style="">
-				<div class="r">
-					<div class="c d"></div>
-					<div class="c d"></div>
-					<div class="c d"></div>
-					<div class="c d"></div>
-				</div>
-				<div class="r">
-					<div class="c d"></div>
-					<div class="c d"></div>
-					<div class="c d"></div>
-					<div class="c d"></div>
-				</div>
-				<div class="r">
-					<div class="c d"></div>
-					<div class="c d"></div>
-					<div class="c d"></div>
-					<div class="c d"></div>
-				</div>
-				<div class="r">
-					<div class="c d"></div>
-					<div class="c d"></div>
-					<div class="c d"></div>
-					<div class="c d"></div>
-				</div>
-			</div>
+			<div class="b f" id="board" style=""></div>
 		</div>
 		<div id="directions" class="f" style="
 			margin: 0 auto;
@@ -181,29 +165,29 @@
 		<script type="text/javascript">
 			// MODEL - GAME LOGIC
 			var model = new function() {
-				this.matrix_length = 4;
+				this.matrix_length = 5;
 				this.board = [];
 				this.directions = Object.freeze({
 					east: 1,
 					west: -1,
-					north: -4,
-					south: 4
+					north: -1 * this.matrix_length,
+					south: this.matrix_length
 				});
 
 				this.direction_start_index = {
 					// Where is our initial cell
 					'-1' : 00, // West means start at Top Right
-					 '1' : 03, // East means start at Top Left
-					'-4' : 00, // North means start at Bottom Left
-					 '4' : 12  // South means start at Top Left
+					 '1' : this.matrix_length - 1, // East means start at Top Left
+					'-5' : 00, // North means start at Top Left
+					 '5' : this.matrix_length * (this.matrix_length - 1)  // South means start at Bottom Left
 				};
 
 				this.direction_move_vector = {
 					// How do we get to the next row / col
 					'-1' : +01, // West means South is next row
-					 '1' : +07, // East means South is next row
-					'-4' : -11, // North means East is next Col
-					 '4' : +13  // South means East is next Col
+					 '1' : this.matrix_length * 2 - 1, // East means South is next row
+					'-5' : -1 * (this.matrix_length * (this.matrix_length - 1) - 1),//-11, // North means East is next Col
+					 '5' : this.matrix_length * (this.matrix_length - 1) + 1//+13  // South means East is next Col
 				};
 
 				this.block_add_callback = null;
@@ -223,7 +207,7 @@
 				};
 
 				this.new_game = function() {
-					this.board = Array.apply(null, Array(16)).map(function () { return 0; });
+					this.board = Array.apply(null, Array(this.matrix_length * this.matrix_length)).map(function () { return 0; });
 					this.board_add_block();
 					this.board_add_block();
 				};
@@ -239,17 +223,19 @@
 				}
 
 				this.board_add_block = function() {
-					var board_index = null;
-					do {
-						var x = Math.floor(Math.random() * (this.matrix_length * this.matrix_length + 1));
-						if (this.board[x] == 0) {
-							board_index = x;
+					var indices = [];
+					for (var i = 0; i < this.board.length; i++) {
+						if (this.board[i] == 0) {
+							indices.push(i);
 						}
-					} while (board_index === null);
+					}
 
-					this.board[board_index] = ([1, 2])[Math.floor(Math.random() * 2)];
-					if (this.block_add_callback != null) {
-						this.block_add_callback(board_index);
+					if (indices.length > 0) {
+						var board_index = indices[Math.floor(Math.random() * indices.length)];
+						this.board[board_index] = ([1, 2])[Math.floor(Math.random() * 2)];			
+						if (this.block_add_callback != null) {
+							this.block_add_callback(board_index);
+						}			
 					}
 				};
 
@@ -453,14 +439,15 @@
 				}
 			}
 
-			function is_playing() {
-				return !(view__state == view_states.first_game || view__state == view_states.won);
+			function is_animation_playing() {
+				return view__state == view_states.first_game;
 			}
 
 			function show_message (message, allowContinue) {
 				// Board overlay, disable keyevents
 				document.getElementById("gMessage").style.display = 'inline';
 				document.getElementById("sMessage").innerText = message;
+				document.getElementById("gContinue").style.display = allowContinue ? 'inherit' : 'none';
 			}
 
 			var isWinner = false;
@@ -525,6 +512,18 @@
 			var hh = null;
 			var musicTimeoutId = null;
 			$(document).ready(function() {
+				var b = document.getElementById("board");
+				for(var y = 0; y < model.matrix_length; y++) {
+					var r = document.createElement("div");
+					r.className = "r";
+					b.appendChild(r);
+					for(var x = 0; x < model.matrix_length; x++) {
+						var c = document.createElement("div");
+						c.className = "c d";
+						r.appendChild(c);
+					}
+				}
+
 				$(".title").text(Math.pow(view__n, 11));
 				$(".n_1").text(view__n);
 				$(".n_2").text(view__n * view__n);
@@ -549,7 +548,7 @@
 
 				// events
 				$(".new").click(function (evt) {
-					if (!is_playing()) {
+					if (is_animation_playing()) {
 						return;
 					}
 					evt.stopPropagation();
@@ -559,7 +558,7 @@
 
 				// event based game loop
 				$(window).keydown(function(event) {
-					if (!is_playing()) {
+					if (is_animation_playing() || document.getElementById("gMessage").style.display == 'inline') {
 						return;
 					}
 
@@ -607,7 +606,7 @@
 						}
 
 						var highest_block = model.block_highest();
-						if (!isWinner && highest_block >= 2048) {
+						if (!isWinner && highest_block >= 11) {
 							isWinner = true;
 							isGameOver = true;
 							view_state_update(view_states.won);
