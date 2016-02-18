@@ -5,10 +5,16 @@
 	<script src="jquery-2.2.0.min.js"></script>
 	<script src="jquery-ui.min.js"></script>
 	<style>
-		.new {
+		.button {
 			background: #8f7a66;
 			color:white;
 			cursor: pointer
+		}
+
+		.button_disable {
+			background: #cecece;
+			color: white;
+			cursor: not-allowed;
 		}
 
 		.f {
@@ -63,6 +69,67 @@
 			margin: 0px;
 		}
 	</style>
+	<script type="text/javascript">
+		var colors = new Array(
+			[143,122,102],
+			[205,193,181],
+			[238,228,218],
+			[236,224,202],
+			[242,177,122],
+			[245,149,101],
+			[243,125,92],
+			[246,93,59],
+			[237,206,113],
+			[237,204,99],
+			[255,217,29],
+			[255,238,29],
+			[255,255,0]);
+
+		var step = 0;
+		//color table indices for: 
+		// current color left
+		// next color left
+		// current color right
+		// next color right
+		var colorIndices = [0,1,2,3];
+
+		//transition speed
+		var gradientSpeed = 0.008;//0.002;
+
+		function updateGradient()
+		{
+			var c0_0 = colors[colorIndices[0]];
+			var c0_1 = colors[colorIndices[1]];
+			var c1_0 = colors[colorIndices[2]];
+			var c1_1 = colors[colorIndices[3]];
+
+			var istep = 1 - step;
+			var r1 = Math.round(istep * c0_0[0] + step * c0_1[0]);
+			var g1 = Math.round(istep * c0_0[1] + step * c0_1[1]);
+			var b1 = Math.round(istep * c0_0[2] + step * c0_1[2]);
+			var color1 = "rgb("+r1+","+g1+","+b1+")";
+			var r2 = Math.round(istep * c1_0[0] + step * c1_1[0]);
+			var g2 = Math.round(istep * c1_0[1] + step * c1_1[1]);
+			var b2 = Math.round(istep * c1_0[2] + step * c1_1[2]);
+			var color2 = "rgb("+r2+","+g2+","+b2+")";
+
+			$('#board').css({
+				background: "-webkit-gradient(linear, left top, right top, from("+color1+"), to("+color2+"))"}).css({
+				background: "-moz-linear-gradient(left, "+color1+" 0%, "+color2+" 100%)"});
+
+			step += gradientSpeed;
+			if ( step >= 1 ) {
+				step %= 1;
+				colorIndices[0] = colorIndices[1];
+				colorIndices[2] = colorIndices[3];
+
+				//pick two new target color indices
+				//do not pick the same as the current one
+				colorIndices[1] = (colorIndices[1] + Math.floor(1 + Math.random() * (colors.length - 1))) % colors.length;
+				colorIndices[3] = (colorIndices[3] + Math.floor(1 + Math.random() * (colors.length - 1))) % colors.length;
+			}
+		}
+	</script>
 </head>
 	<body>
 		<audio id="mHH" src="HalfwayHouse.mp3" type="audio/mp3"></audio>
@@ -86,8 +153,8 @@
 				<div class="d" style="font-size: 12px; font-weight: normal; width: 225px;">
 					<span class="n_1 a"></span> <span class="a">&#9679;</span> <span class="n_1 a"></span> <span class="a">=</span> <span class="n_2 a"></span><span class="a">;</span> <span class="a">Get to <span class="title"></span>!</span>
 				</div>
-				<div class="d" style="background: white; color:white;">Undo</div>
-				<div class="d new">New</div>
+				<div id="undo" class="d button_disable">Undo</div>
+				<div class="d button new">New</div>
 			</div>
 		</div>
 		<div>
@@ -122,7 +189,7 @@
 						" onclick="javascript:document.getElementById('gMessage').style.display='none';">
 						Continue?
 					</div>
-					<div class="new" style="
+					<div class="button new" style="
 						padding: 0px;
 						width: 325px;
 						top: 270px;
@@ -165,29 +232,47 @@
 		<script type="text/javascript">
 			// MODEL - GAME LOGIC
 			var model = new function() {
-				this.matrix_length = 5;
+				this.matrix_length = getParameterByName("n");
+				if (!this.matrix_length || this.matrix_length != parseInt(this.matrix_length)) {
+					this.matrix_length = 4;
+				} else {
+					this.matrix_length = parseInt(this.matrix_length);
+					if (this.matrix_length < 2) {
+						this.matrix_length = 2;
+					} else if (this.matrix_length > 6) {
+						this.matrix_length = 6;
+					}
+				}
+
 				this.board = [];
 				this.directions = Object.freeze({
-					east: 1,
-					west: -1,
-					north: -1 * this.matrix_length,
-					south: this.matrix_length
+					east: 0,//1,
+					west: 1,//-1,
+					north: 2,//-1 * this.matrix_length,
+					south: 3//this.matrix_length
 				});
+
+				this.direction_movement = {
+					'0': 1,
+					'1': -1,
+					'2': -1 * this.matrix_length,
+					'3': this.matrix_length
+				}
 
 				this.direction_start_index = {
 					// Where is our initial cell
-					'-1' : 00, // West means start at Top Right
-					 '1' : this.matrix_length - 1, // East means start at Top Left
-					'-5' : 00, // North means start at Top Left
-					 '5' : this.matrix_length * (this.matrix_length - 1)  // South means start at Bottom Left
+					'0' : this.matrix_length - 1, // East means start at Top Right
+					'1' : 00, // West means start at Top Right
+					'2' : 00, // North means start at Top Left
+					'3' : this.matrix_length * (this.matrix_length - 1)  // South means start at Bottom Left
 				};
 
 				this.direction_move_vector = {
 					// How do we get to the next row / col
-					'-1' : +01, // West means South is next row
-					 '1' : this.matrix_length * 2 - 1, // East means South is next row
-					'-5' : -1 * (this.matrix_length * (this.matrix_length - 1) - 1),//-11, // North means East is next Col
-					 '5' : this.matrix_length * (this.matrix_length - 1) + 1//+13  // South means East is next Col
+					'0' : this.matrix_length * 2 - 1, // East means South is next row
+					'1' : +01, // West means South is next row
+					'2' : -1 * (this.matrix_length * (this.matrix_length - 1) - 1),//-11, // North means East is next Col
+					'3' : this.matrix_length * (this.matrix_length - 1) + 1//+13  // South means East is next Col
 				};
 
 				this.block_add_callback = null;
@@ -260,16 +345,20 @@
 					var hasMoved = false;
 					var index = this.direction_start_index[direction.toString()];
 					var move_next_vector = this.direction_move_vector[direction.toString()];
+					var direction_next_cell = this.direction_movement[direction.toString()];
+					var moves_made = [];
+						//[value, index_start, index_end]
 					for (var i = 0; i < this.board.length; i++) {
 						var value = this.board[index];
+						//console.log([i,direction,index,value,move_next_vector,direction_next_cell]);
 						if (value > 0) {
 							var index_search = index;
 							var last_good = -1;
 							for(var x = 0; x < this.matrix_length; x++) {
 								//Seach for a combination or free cell
-								index_search += direction;
+								index_search += direction_next_cell;
 								if (index_search < 0 || index_search > this.board.length || this.board[index_search] < 0
-									|| this.board_row_col_by_direction(index, direction) != this.board_row_col_by_direction(index_search, direction)) {
+									|| this.board_row_col_by_direction(index, direction_next_cell) != this.board_row_col_by_direction(index_search, direction_next_cell)) {
 									break;
 								}
 
@@ -280,6 +369,7 @@
 									score++;
 									scores.push(score);
 									if (modify_board) {
+										moves_made.push([this.board[index_search], index, index_search]);
 										this.board[index_search] = -1 * score;
 										this.board[index] = 0;
 									}
@@ -296,6 +386,7 @@
 								if (modify_board) {
 									this.board[last_good] = this.board[index];
 									this.board[index] = 0;
+									moves_made.push([this.board[last_good], index, last_good]);
 								}
 								hasMoved = true;
 							}
@@ -306,7 +397,7 @@
 							index += move_next_vector;
 						} else {
 							// Take steps away from the direction we push towards
-							index -= direction;
+							index -= direction_next_cell;
 						}
 					}
 
@@ -316,7 +407,7 @@
 						}
 					}
 
-					return [hasMoved, scores];
+					return [hasMoved, scores, moves_made];
 				};
 
 				this.has_move = function() {
@@ -327,7 +418,7 @@
 					}
 
 					for (var direction in this.directions) {
-						if (this.board_shift(this.directions[direction], false)[1].length > 0) {
+						if (this.board_shift(direction, false)[1].length > 0) {
 							return true;
 						}
 					}
@@ -350,33 +441,35 @@
 				this.south = function() {
 					return this.board_shift(this.directions.south);
 				};
-
-				this.board_print = function() {
-					var row = "";
-					for (var i = 0; i < this.board.length; i++) {
-						row += this.board[i].toString() + ", ";
-						if ((i + 1) % this.matrix_length == 0) {
-							console.log(Math.floor(i / this.matrix_length).toString() + ": " + row);
-							row = "";
-						}
-					}
-
-					console.log(row);
-				};
 			};
 		</script>
 
 		<script type="text/javascript">
 			// VIEW - Visual Display
-			var view__n = getParameterByName("n") ? getParameterByName("n") : 2;
+			var view__n = getParameterByName("e");
+			if (!view__n || view__n != parseInt(view__n)) {
+				view__n = 2;
+			} else {
+				view__n = parseInt(view__n);
+				if (view__n > 10) {
+					view__n = 10;
+				} else if (view__n < 2) {
+					view__n = 2;
+				}
+			}
+
 			var view__has_moved = false;
 				// Has a player made a move yet
 			var view__score = 0;
 				// Sum of scores per game
 			var view__scores = [];
 				// Scores per move
+			var view__move_mades = [];
+			var view__moves = [];
 			var view__highscore = 0;
 				// Highest score seen so far
+			var view__hscore_this_game = false;
+			var view__hscore_previous = 0;
 			var view_states = Object.freeze({
 				first_game: 0,
 				new_game: 1,
@@ -443,6 +536,35 @@
 				return view__state == view_states.first_game;
 			}
 
+			function undo_review () {
+				document.getElementById("undo").className = view__moves.length > 1 ? "d button" : "d button_disable";
+			}
+
+			function score_update(scores, add) {
+				for (var i = 0; i < scores.length; i ++) {
+					if (add) {
+						view__score += Math.pow(view__n, scores[i]);
+					} else {
+						view__score -= Math.pow(view__n, scores[i]);
+					}
+					document.getElementById("score").innerText = view__score.toString();
+				}
+
+				if (view__score > view__highscore) {
+					view__highscore = view__score;
+					view__hscore_this_game = true;
+				} else if (view__hscore_this_game) {
+					if (view__score < view__hscore_previous) {
+						view__highscore = view__hscore_previous;
+						view__hscore_this_game = false;
+					} else {
+						view__highscore = view__score
+					}
+				}
+
+				document.getElementById("hscore").innerText = view__highscore;
+			}
+
 			function show_message (message, allowContinue) {
 				// Board overlay, disable keyevents
 				document.getElementById("gMessage").style.display = 'inline';
@@ -455,16 +577,20 @@
 			function new_game() {
 				$(document.getElementsByClassName("c")).finish();
 				view__has_moved = false;
+				view__moves = [];
+				view__move_mades = [];
 				view__score = 0;
+				view__hscore_previous = view__highscore;
+				view__hscore_this_game = false;
 
+				undo_review();
 				document.getElementById("score").innerText = view__score.toString();
-				//document.getElementById("title").style.background = "white";
 				isWinner = false;
-				//document.getElementById("winner").style.display = 'none';
 
 				isGameOver = false;
 				model.new_game();
 				board_display(model.board);
+				view__moves.push(model.board.slice());
 			}
 
 			var backcolor = {
@@ -482,26 +608,41 @@
 				"11": "#ffff00",
 			}
 
-			function board_display(board) {
+			function board_display(board, should_animate) {
 				var cells = document.getElementsByClassName("c");
 				//document.getElementById("title").style.backgroundColor = backcolor[highest_block.toString()];
+				var cell_color;
+				var cell_backgroundColor;
 				for (var i = 0; i < board.length; i++) {
 					var cell = cells[i];
 					cell.innerText = Math.pow(view__n, board[i]).toString();
-					cell.style.color = "#ffffff";
+					cell_color = "#ffffff";
 					cell.style.fontSize = "55px";
 					if (backcolor[board[i]] === undefined) {
-						cell.style.backgroundColor = "#ffff00";
+						cell_backgroundColor = "#ffff00";
 					} else {
-						cell.style.backgroundColor = backcolor[board[i]];
+						cell_backgroundColor = backcolor[board[i]];
+					}
+
+					if (board[i] <= 2) {
+						cell_color = "#000000";
+					} else if (cell.innerText.length > 3) {
+						cell.style.fontSize = "40px";
 					}
 
 					if (board[i] == 0) {
 						cell.innerText = "";
-					} else if (board[i] <= 2) {
-						cell.style.color = "#000000";
-					} else if (cell.innerText.length > 3) {
-						cell.style.fontSize = "40px";
+					}
+
+					if (should_animate) {
+						$(cell).animate({
+							backgroundColor: cell_backgroundColor,
+							color: cell_color
+						},
+						1000);
+					} else {
+						cell.style.color = cell_color;
+						cell.style.backgroundColor = cell_backgroundColor;
 					}
 				}
 			}
@@ -511,8 +652,14 @@
 			// Connect Model logic with View display
 			var hh = null;
 			var musicTimeoutId = null;
+			var eventPattern = [38,40,38,40,37,39,37,39];
+			var eventPatternIndex = 0;
 			$(document).ready(function() {
 				var b = document.getElementById("board");
+				if (model.matrix_length > 4) {
+					b.style.width = model.matrix_length * 125;
+					b.style.height = b.style.width;
+				}
 				for(var y = 0; y < model.matrix_length; y++) {
 					var r = document.createElement("div");
 					r.className = "r";
@@ -544,6 +691,7 @@
 						1000);
 					cell.innerText = Math.pow(view__n, value);
 				};
+
 				view_state_update(view_states.first_game);
 
 				// events
@@ -556,10 +704,55 @@
 					new_game();
 				});
 
+				$("#undo").click(function (evt) {
+					if ($(this).hasClass("button_disable") || is_animation_playing()) {
+						return;
+					}
+					evt.stopPropagation();
+					view__moves.pop();
+					view__move_mades.pop();
+					score_update(view__scores.pop(), false);
+					undo_review();
+					model.board = view__moves[view__moves.length-1];
+					$.when($(".c").animate({
+						backgroundColor: "#bbada0",
+						color: "#bbada0"
+					}, 500
+					)).then(function() { board_display(model.board, true); });
+				});
+
 				// event based game loop
 				$(window).keydown(function(event) {
+					if (event.keyCode == 27) {
+						$("*").finish();
+					}
+
 					if (is_animation_playing() || document.getElementById("gMessage").style.display == 'inline') {
 						return;
+					}
+
+					if (event.keyCode == eventPattern[eventPatternIndex]) {
+						eventPatternIndex++;
+						if (eventPatternIndex == eventPattern.length) {
+							if (!music_v2) {
+								setInterval(updateGradient, 20);
+								window.clearTimeout(musicTimeoutId);
+								music_v2 = true;
+								new_game();
+								hh.currentTime = 151;
+								hh.playbackRate = 2.0;
+								setTimeout(function(){
+									hh.playbackRate = 1.0;
+									musicTimeoutId = window.setTimeout(music_review, 50)
+								}, 6800);
+							}
+							eventPatternIndex = 0;
+						}
+					} else {
+						eventPatternIndex = 0;
+						if (event.keyCode == eventPattern[eventPatternIndex]) {
+							eventPatternIndex++;
+						}
 					}
 
 					$(document.getElementsByClassName("c")).finish();
@@ -597,14 +790,16 @@
 							if (model.has_free_space()) {
 								model.board_add_block();
 							}
+
+							view__moves.push(model.board.slice());
 						}
 
 						var scores = move_state[1];
-						for (var i = 0; i < scores.length; i ++) {
-							view__score += Math.pow(view__n, scores[i]);
-							document.getElementById("score").innerText = view__score.toString();
-						}
+						view__scores.push(scores);
+						score_update(scores, true);
 
+						var moves = move_state[2];
+						view__move_mades.push(moves);
 						var highest_block = model.block_highest();
 						if (!isWinner && highest_block >= 11) {
 							isWinner = true;
@@ -615,23 +810,25 @@
 							view_state_update(view_states.lost);
 						}
 
-						if (view__score > view__highscore) {
-							view__highscore = view__score;
-							document.getElementById("hscore").innerText = view__highscore;
-						}
+						undo_review();
 					}
 				});
 			});
 
+			var music_v2 = false;
 			function music_review() {
 				var cTime = hh.currentTime;
+				if (music_v2) {
+					cTime -= 150;
+				}
+
 				if (!view__has_moved && cTime > 10.20) {
 					// Intro
-					hh.currentTime = 3.75;
+					hh.currentTime = 3.75 + (music_v2 ? 150 : 0);
 				} else if (view__has_moved && !isGameOver && cTime > 54.8) {
 					// Main loop
-					hh.currentTime = 27.5;
-				} else if (isGameOver && cTime < 220) {
+					hh.currentTime = 27.5 + (music_v2 ? 150 : 0);
+				} else if (isGameOver && cTime < (220 - (music_v2 ? 150 : 0))) {
 					// Outro
 					hh.currentTime = 220.1;
 				}
