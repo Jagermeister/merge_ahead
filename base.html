@@ -132,7 +132,7 @@
 	</script>
 </head>
 	<body>
-		<audio id="mHH" src="HalfwayHouse.mp3" type="audio/mp3"></audio>
+		<audio id="mHH" src="HalfwayHouse.mp3" type="audio/mp3" loop="loop"></audio>
 		<div class="b f" style="height: 125px; background: white;">
 			<div class="r">
 				<div class="d" style="font-size:40px; width:50%; margin: 0 auto;"><span class="title"></span></div>
@@ -186,7 +186,7 @@
 						background: #8f7a66;
 						color:white;
 						cursor: pointer
-						" onclick="javascript:document.getElementById('gMessage').style.display='none';">
+						" onclick="javascript:document.getElementById('gMessage').style.display='none';isGameOver=false;">
 						Continue?
 					</div>
 					<div class="button new" style="
@@ -418,7 +418,7 @@
 					}
 
 					for (var direction in this.directions) {
-						if (this.board_shift(direction, false)[1].length > 0) {
+						if (this.board_shift(this.directions[direction], false)[0]) {
 							return true;
 						}
 					}
@@ -537,7 +537,7 @@
 			}
 
 			function undo_review () {
-				document.getElementById("undo").className = view__moves.length > 1 ? "d button" : "d button_disable";
+				document.getElementById("undo").className = !isGameOver && view__moves.length > 1 ? "d button" : "d button_disable";
 			}
 
 			function score_update(scores, add) {
@@ -590,7 +590,7 @@
 				isGameOver = false;
 				model.new_game();
 				board_display(model.board);
-				view__moves.push(model.board.slice());
+				view__moves.push(Array.from(model.board));
 			}
 
 			var backcolor = {
@@ -713,7 +713,7 @@
 					view__move_mades.pop();
 					score_update(view__scores.pop(), false);
 					undo_review();
-					model.board = view__moves[view__moves.length-1];
+					model.board = Array.from(view__moves[view__moves.length-1]);
 					$.when($(".c").animate({
 						backgroundColor: "#bbada0",
 						color: "#bbada0"
@@ -791,7 +791,7 @@
 								model.board_add_block();
 							}
 
-							view__moves.push(model.board.slice());
+							view__moves.push(Array.from(model.board));
 						}
 
 						var scores = move_state[1];
