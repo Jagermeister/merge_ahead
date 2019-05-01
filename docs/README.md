@@ -6,3 +6,20 @@ HTML div based approach featuring:
 * Settings for width (qs param n=?), and which base number to start with (qs param e=?)
 * High score
 * Konami code causing gradient background
+
+Start of game
+
+![Start of game](./01_start.PNG)
+
+Playing
+
+![Playing](./02_Play.PNG)
+
+1024!
+
+![1024!](./03_Win.PNG)
+
+Game Over
+
+![Game over](./04_End.PNG)
+
