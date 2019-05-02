@@ -1,5 +1,5 @@
 # Merge Ahead
-Clone of merging blocks in a 4 by 4 grid
+Clone of merging blocks in a 4 by 4 grid. Blocks with the same value will combine to form larger blocks. See how high you can build your blocks without running out of room!
 
 HTML div based approach featuring:
 * Game state based music: New game, mid game, end of game
