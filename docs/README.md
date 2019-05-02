@@ -9,7 +9,7 @@ HTML div based approach featuring:
 
 Start of game
 
-![Start of game](./01_start.PNG)
+![Start of Game](./01_Start.PNG)
 
 Playing
 
