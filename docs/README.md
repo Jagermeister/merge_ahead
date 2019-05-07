@@ -23,3 +23,7 @@ Game Over
 
 ![Game over](./04_End.PNG)
 
+
+## Future Features
+- Animations for sliding
+- Animations for merging
