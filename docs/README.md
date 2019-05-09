@@ -7,22 +7,16 @@ HTML div based approach featuring:
 * High score
 * Konami code causing gradient background
 
-Start of game
-
-![Start of Game](./01_Start.PNG)
-
-Playing
-
-![Playing](./02_Play.PNG)
-
-1024!
-
-![1024!](./03_Win.PNG)
-
-Game Over
-
-![Game over](./04_End.PNG)
-
+<table>
+    <tr>
+        <td>Start of game<img src="./01_Start.png"/></td>
+        <td>Playing<img src="./02_Play.png"/></td>
+    </tr>
+    <tr>
+        <td>1024!<img src="./03_Win.png"/></td>
+        <td>Game Over<img src="./04_End.png"/></td>
+    </tr>
+</table>
 
 ## Future Features
 - Animations for sliding
