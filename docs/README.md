@@ -9,12 +9,12 @@ HTML div based approach featuring:
 
 <table>
     <tr>
-        <td>Start of game<img src="./01_Start.png"/></td>
-        <td>Playing<img src="./02_Play.png"/></td>
+        <td>Start of game<img src="./01_Start.PNG"/></td>
+        <td>Playing<img src="./02_Play.PNG"/></td>
     </tr>
     <tr>
-        <td>1024!<img src="./03_Win.png"/></td>
-        <td>Game Over<img src="./04_End.png"/></td>
+        <td>1024!<img src="./03_Win.PNG"/></td>
+        <td>Game Over<img src="./04_End.PNG"/></td>
     </tr>
 </table>
 
